@@ -10,6 +10,8 @@ import Tesseract, { createWorker } from 'tesseract.js';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import ApprovalIcon from '@mui/icons-material/Approval';
 import SettingsIcon from '@mui/icons-material/Settings';
+import EndCredits from "./DialogueScreen";
+
 
 const pdfjsLib = require(/* webpackChunkName: "pdfjs-dist" */ `pdfjs-dist`);
 
@@ -26,6 +28,19 @@ const InputBox = () => {
   const wsUrl = 'ws://127.0.0.1:8000/stream';
   const ws = new WebSocket(wsUrl);
 
+  const [dialogueModelOpen, setIsModalOpen] = useState(false);
+
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+
+
+
   const onPromptChange = (event) => {
     setPrompt(event.target.value);
   };
@@ -34,6 +49,7 @@ const InputBox = () => {
     console.log(prompt + ' ' + promptSettingsList.join(' '))
     ws.send(JSON.stringify([{ content: prompt + (promptSettingsList.length > 0 ? ' ' + promptSettingsList.join(' ') : ''), role: 'user'}]))
     ws.send(JSON.stringify(modelInput));
+    handleOpenModal()
   }
 
   const onSubmitPromptEnter = (event) => {
@@ -206,6 +222,16 @@ const InputBox = () => {
         <IconButton onClick={onSubmitPrompt} size="small" sx={{ background: '#1a78ee', marginX: '3px', '&:hover': { background: '#1a78ee' }}}>
             <EastIcon sx={{ color: 'hsla(0,0%,15%,0.8)' }} />
         </IconButton>
+
+          <Modal open={dialogueModelOpen} onClose={handleCloseModal}>
+        <Box sx={{ position: 'absolute', top: '90%', left: '45%', transform: 'translate(-50%, -50%)',  width: '60vw',
+    height: '60vh', bgcolor: 'rgba(0, 0, 0, 0.7)', boxShadow: 5, p: 4 }}>
+          {/* Modal content goes here */}
+          <EndCredits/>
+        </Box>
+      </Modal>
+
+        
         </Box>
       </Box>
       {isFileParsing && (
