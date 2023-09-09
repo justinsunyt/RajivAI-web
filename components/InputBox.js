@@ -7,9 +7,9 @@ import Dropzone from 'react-dropzone'
 import DoNotDisturbOnIcon from '@mui/icons-material/DoNotDisturbOn';
 import workerSrc from '!!file-loader!pdfjs-dist/build/pdf.worker.min.js'
 import Tesseract, { createWorker } from 'tesseract.js';
-import axios from "axios";
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import ApprovalIcon from '@mui/icons-material/Approval';
+import SettingsIcon from '@mui/icons-material/Settings';
 
 const pdfjsLib = require(/* webpackChunkName: "pdfjs-dist" */ `pdfjs-dist`);
 
@@ -32,14 +32,14 @@ const InputBox = () => {
 
   const onSubmitPrompt = () => {
     console.log(prompt + ' ' + promptSettingsList.join(' '))
-    ws.send(JSON.stringify([{ content: prompt + ' ' + promptSettingsList.join(' '), role: 'user'}]))
+    ws.send(JSON.stringify([{ content: prompt + (promptSettingsList.length > 0 ? ' ' + promptSettingsList.join(' ') : ''), role: 'user'}]))
     ws.send(JSON.stringify(modelInput));
   }
 
   const onSubmitPromptEnter = (event) => {
     if (event.keyCode === 13) {
         // Do something with prompt
-        ws.send(JSON.stringify([{ content: prompt + ' ' + promptSettingsList.join(' '), role: 'user'}]))
+        ws.send(JSON.stringify([{ content: prompt + (promptSettingsList.length > 0 ? ' ' + promptSettingsList.join(' ') : ''), role: 'user'}]))
         ws.send(JSON.stringify(modelInput));
     }
   }
@@ -148,6 +148,8 @@ const InputBox = () => {
     })
   }
 
+  const isPrompSettingsEmpty = promptSettingsList.filter(setting => setting !== '').length === 0
+
   useEffect(() => {
     console.log(promptSettingsList);
     if (promptSettings.questionsCount !== undefined || promptSettings.questionsCount > 0) {
@@ -232,6 +234,15 @@ const InputBox = () => {
             </Box>
         </Box>
       )}
+      {!isPrompSettingsEmpty && (
+        <Box paddingTop={'15px'} paddingX={'14px'}>
+            <Box display={'flex'} alignItems='center'>
+              <SettingsIcon sx={{ width: 18 }} color="primary" />
+              <Box width={8}/>
+              <Typography sx={{ fontSize: 12 }}>Settings</Typography>
+            </Box>
+        </Box>
+      )}
     </Box>
     <Modal open={openDocumentModal} onClose={handleCloseDocumentModal}>
         <Box width={700} backgroundColor={'hsla(0,0%,15%,1)'} position='absolute' top={'50%'} left={'50%'} sx={{ transform: 'translate(-50%, -50%)', paddingX: '15px', paddingY: '20px', borderRadius: '5px',  border: '1px solid #333'}}>
@@ -289,7 +300,7 @@ const InputBox = () => {
             <Box display={'flex'} alignItems='center'>
                 <AccountTreeIcon fontSize="small" color='primary' />
                 <Box width={10} />
-                <Typography variant="h7">Make specifications for more granular test generation</Typography>
+                <Typography variant="h7">Make specifications for more granular exam generation</Typography>
             </Box>
             <Box height={20} />
             <Box width={'100%'}>

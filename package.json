@@ -12,6 +12,7 @@
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.14.8",
     "@mui/material": "^5.14.8",
+    "file-loader": "^6.2.0",
     "fs": "^0.0.1-security",
     "next": "latest",
     "pdf-parse": "^1.1.1",
