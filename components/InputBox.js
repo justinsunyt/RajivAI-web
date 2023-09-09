@@ -9,6 +9,7 @@ import workerSrc from '!!file-loader!pdfjs-dist/build/pdf.worker.min.js'
 import Tesseract, { createWorker } from 'tesseract.js';
 import axios from "axios";
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import ApprovalIcon from '@mui/icons-material/Approval';
 
 const pdfjsLib = require(/* webpackChunkName: "pdfjs-dist" */ `pdfjs-dist`);
 
@@ -20,6 +21,8 @@ const InputBox = () => {
   const [files, setFiles] = useState([]);
   const [parsedFilesCount, setParsedFilesCount] = useState(files.length);
   const [isFileParsing, setIsFileParsing] = useState(false);
+  const [promptSettings, setPrompSettings] = useState({ questionsCount: undefined, topics: undefined, questionTypes: undefined, notes: undefined });
+  const [promptSettingsList, setPrompSettingsList] = useState(['', '', '', '']);
   const wsUrl = 'ws://127.0.0.1:8000/stream';
   const ws = new WebSocket(wsUrl);
 
@@ -28,15 +31,15 @@ const InputBox = () => {
   };
 
   const onSubmitPrompt = () => {
-    // Do something with prompt
-    ws.send(JSON.stringify([{ content: prompt, role: 'user'}]))
+    console.log(prompt + ' ' + promptSettingsList.join(' '))
+    ws.send(JSON.stringify([{ content: prompt + ' ' + promptSettingsList.join(' '), role: 'user'}]))
     ws.send(JSON.stringify(modelInput));
   }
 
   const onSubmitPromptEnter = (event) => {
     if (event.keyCode === 13) {
         // Do something with prompt
-        ws.send(JSON.stringify([{ content: prompt, role: 'user'}]))
+        ws.send(JSON.stringify([{ content: prompt + ' ' + promptSettingsList.join(' '), role: 'user'}]))
         ws.send(JSON.stringify(modelInput));
     }
   }
@@ -49,6 +52,16 @@ const InputBox = () => {
 
   const handleCloseDocumentModal = () => {
     setOpenDocumentModal(false);
+  }
+
+  const [openQuestionsModal, setOpenQuestionsModal] = useState(false);
+
+  const handleOpenQuestionsModal = () => {
+    setOpenQuestionsModal(true);
+  }
+
+  const handleCloseQuestionsModal = () => {
+    setOpenQuestionsModal(false);
   }
 
   const onFileUpload = async (uploadedFiles) => {
@@ -103,15 +116,70 @@ const InputBox = () => {
     }
   }, [parsedFilesCount])
 
+  const onChangeQuestionsCount = (event) => {
+    setPrompSettings(prevObj => {
+        const settings = { ...prevObj };
+        settings.questionsCount = event.target.value;
+        return settings;
+    })
+  };
+
+  const onChangeQuestionTypes = (event) => {
+    setPrompSettings(prevObj => {
+        const settings = { ...prevObj };
+        settings.questionTypes = event.target.value;
+        return settings;
+    })
+  }
+
+  const onChangeQuestionTopics = (event) => {
+    setPrompSettings(prevObj => {
+        const settings = { ...prevObj };
+        settings.topics = event.target.value;
+        return settings;
+    })
+  }
+
+  const onChangeNotes = (event) => {
+    setPrompSettings(prevObj => {
+        const settings = { ...prevObj };
+        settings.notes = event.target.value;
+        return settings;
+    })
+  }
+
   useEffect(() => {
-    if (parsedFilesCount <= 0 || modelInput.length === 0) return;
-    if (parsedFilesCount === files.length) {
-        // ws.onopen = () => {
-        //     ws.send(JSON.stringify([{ content: prompt, role: 'user'}]))
-        //     ws.send(JSON.stringify(modelInput));
-        // }
+    console.log(promptSettingsList);
+    if (promptSettings.questionsCount !== undefined || promptSettings.questionsCount > 0) {
+        // setPromptList(prompt => prompt + ` Make sure to generate ${promptSettings.questionsCount} questions. `)
+        setPrompSettingsList(settings => {
+            const newSettings = [...settings];
+            newSettings[0] = `Make sure to generate ${promptSettings.questionsCount} questions.`;
+            return newSettings;
+        })
     }
-  }, [prompt, parsedFilesCount])
+    if (promptSettings.questionTypes !== undefined) {
+        setPrompSettingsList(settings => {
+            const newSettings = [...settings];
+            newSettings[1] = `Make sure to follow this guideline about question types: ${promptSettings.questionTypes}.`;
+            return newSettings;
+        })
+    }
+    if (promptSettings.topics !== undefined) {
+        setPrompSettingsList(settings => {
+            const newSettings = [...settings];
+            newSettings[2] = `Make sure to follow this guideline about topics: ${promptSettings.topics}.`;
+            return newSettings;
+        })
+    }
+    if (promptSettings.notes !== undefined) {
+        setPrompSettingsList(settings => {
+            const newSettings = [...settings];
+            newSettings[3] = `Make sure to follow this extra notes: ${promptSettings.topics}.`;
+            return newSettings;
+        })
+    }
+  }, [promptSettings])
 
   return (
     <>
@@ -126,7 +194,7 @@ const InputBox = () => {
                 <Typography variant="h9" fontSize={'14px'} color='main'>Input Documents</Typography>
             </Box>
             <Box width={8} />
-            <Box sx={{ '&:hover': { cursor: 'pointer', background: 'black' }, transition: 'background 0.5s ease', paddingX: '5px', paddingY: '5px', borderRadius: '5px' }} display={'flex'} alignItems='center' flexDirection={'row'} onClick={handleOpenDocumentModal}>
+            <Box sx={{ '&:hover': { cursor: 'pointer', background: 'black' }, transition: 'background 0.5s ease', paddingX: '5px', paddingY: '5px', borderRadius: '5px' }} display={'flex'} alignItems='center' flexDirection={'row'} onClick={handleOpenQuestionsModal}>
                 <AccountTreeIcon sx={{ width: '18px' }} fontSize="small" color='primary' />
                 <Box width={5} />
                 <Typography variant="h9" fontSize={'14px'} color='main'>Specify questions</Typography>
@@ -156,9 +224,9 @@ const InputBox = () => {
             </Box>
             <Box height={10}/>
             <Box display={'flex'} flexWrap='wrap' justifyContent={'start'}>
-                {files.map(file => (
+                {files.map((file, index) => (
                     <Box width={125} key={file.path}>
-                        <Chip sx={{ width: 120, marginBottom: '15px', marginRight: '10px' }} size='small' key={file.path} label={<Typography sx={{ fontSize: '12px' }} variant="h8" noWrap>{file.path}</Typography>} />
+                        <Chip sx={{ width: 120, marginBottom: '15px', marginRight: '10px' }} size='small' key={file.path} label={<Typography sx={{ fontSize: '12px' }} variant="h8" noWrap>{(index+1) + '. ' + file.path}</Typography>} />
                     </Box>
                 ))}
             </Box>
@@ -213,6 +281,29 @@ const InputBox = () => {
             </Box>
             <Box display={'flex'} justifyContent='end'>
                 <Button onClick={handleCloseDocumentModal} variant="contained" startIcon={<DoNotDisturbOnIcon />}>Close</Button>
+            </Box>
+        </Box>
+    </Modal>
+    <Modal open={openQuestionsModal} onClose={handleCloseQuestionsModal}>
+        <Box width={700} backgroundColor={'hsla(0,0%,15%,1)'} position='absolute' top={'50%'} left={'50%'} sx={{ transform: 'translate(-50%, -50%)', paddingX: '15px', paddingY: '20px', borderRadius: '5px',  border: '1px solid #333'}}>
+            <Box display={'flex'} alignItems='center'>
+                <AccountTreeIcon fontSize="small" color='primary' />
+                <Box width={10} />
+                <Typography variant="h7">Make specifications for more granular test generation</Typography>
+            </Box>
+            <Box height={20} />
+            <Box width={'100%'}>
+                <TextField onChange={onChangeQuestionsCount} value={promptSettings.questionsCount} sx={{ width: 400 }} variant="outlined" label="How many questions would you like?" type="number" />
+                <Box height={15} />
+                <TextField onChange={onChangeQuestionTypes} value={promptSettings.questionTypes} sx={{ width: '100%' }} variant="outlined" label="Specify what type of questions you would like? In what order?" multiline rows={3}/>
+                <Box height={15} />
+                <TextField onChange={onChangeQuestionTopics} value={promptSettings.topics} sx={{ width: '100%' }} variant="outlined" label="What topics you would like to focus on?" multiline rows={3}/>
+                <Box height={15} />
+                <TextField onChange={onChangeNotes} value={promptSettings.notes} sx={{ width: '100%' }} variant="outlined" label="Extra notes" multiline rows={3}/>
+            </Box>
+            <Box height={20} />
+            <Box display={'flex'} justifyContent='end'>
+                <Button onClick={handleCloseQuestionsModal} variant="contained" startIcon={<DoNotDisturbOnIcon />}>Close</Button>
             </Box>
         </Box>
     </Modal>
