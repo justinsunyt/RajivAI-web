@@ -24,22 +24,27 @@ const InputBox = () => {
   const [promptSettings, setPrompSettings] = useState({ questionsCount: undefined, topics: undefined, questionTypes: undefined, notes: undefined });
   const [promptSettingsList, setPrompSettingsList] = useState(['', '', '', '']);
   const wsUrl = 'ws://127.0.0.1:8000/stream';
-  const ws = new WebSocket(wsUrl);
+
+  const isPrompSettingsEmpty = promptSettingsList.filter(setting => setting !== '').length === 0
+
+  const [ws, setWS] = useState();
+
+  useEffect(() => {
+    setWS(new WebSocket(wsUrl));
+  }, [])
 
   const onPromptChange = (event) => {
     setPrompt(event.target.value);
   };
 
   const onSubmitPrompt = () => {
-    console.log(prompt + ' ' + promptSettingsList.join(' '))
-    ws.send(JSON.stringify([{ content: prompt + (promptSettingsList.length > 0 ? ' ' + promptSettingsList.join(' ') : ''), role: 'user'}]))
+    ws.send(JSON.stringify([{ content: prompt + (promptSettingsList.filter(setting => setting !== '').length !== 0 ? ' ' + promptSettingsList.join(' ') : ''), role: 'user'}]))
     ws.send(JSON.stringify(modelInput));
   }
 
   const onSubmitPromptEnter = (event) => {
     if (event.keyCode === 13) {
-        // Do something with prompt
-        ws.send(JSON.stringify([{ content: prompt + (promptSettingsList.length > 0 ? ' ' + promptSettingsList.join(' ') : ''), role: 'user'}]))
+        ws.send(JSON.stringify([{ content: prompt + (promptSettingsList.filter(setting => setting !== '').length !== 0 ? ' ' + promptSettingsList.join(' ') : ''), role: 'user'}]))
         ws.send(JSON.stringify(modelInput));
     }
   }
@@ -148,8 +153,6 @@ const InputBox = () => {
     })
   }
 
-  const isPrompSettingsEmpty = promptSettingsList.filter(setting => setting !== '').length === 0
-
   useEffect(() => {
     console.log(promptSettingsList);
     if (promptSettings.questionsCount !== undefined || promptSettings.questionsCount > 0) {
@@ -193,7 +196,7 @@ const InputBox = () => {
             <Box sx={{ '&:hover': { cursor: 'pointer', background: 'black' }, transition: 'background 0.5s ease', paddingX: '5px', paddingY: '5px', borderRadius: '5px' }} display={'flex'} alignItems='center' flexDirection={'row'} onClick={handleOpenDocumentModal}>
                 <AddCircleIcon sx={{ width: '18px' }} fontSize="small" color='primary' />
                 <Box width={5} />
-                <Typography variant="h9" fontSize={'14px'} color='main'>Input Documents</Typography>
+                <Typography variant="h9" fontSize={'14px'} color='main'>Input materials</Typography>
             </Box>
             <Box width={8} />
             <Box sx={{ '&:hover': { cursor: 'pointer', background: 'black' }, transition: 'background 0.5s ease', paddingX: '5px', paddingY: '5px', borderRadius: '5px' }} display={'flex'} alignItems='center' flexDirection={'row'} onClick={handleOpenQuestionsModal}>
@@ -222,7 +225,7 @@ const InputBox = () => {
             <Box display={'flex'} alignItems='center'>
               <LibraryBooksIcon sx={{ width: 18 }} color="primary" />
               <Box width={8}/>
-              <Typography sx={{ fontSize: 12 }}> {files.length} Document{files.length > 1 ? 's' : ''} attached</Typography>
+              <Typography sx={{ fontSize: 12 }}> {files.length} document{files.length > 1 ? 's' : ''} attached</Typography>
             </Box>
             <Box height={10}/>
             <Box display={'flex'} flexWrap='wrap' justifyContent={'start'}>
@@ -235,11 +238,18 @@ const InputBox = () => {
         </Box>
       )}
       {!isPrompSettingsEmpty && (
-        <Box paddingTop={'15px'} paddingX={'14px'}>
+        <Box paddingTop={'15px'} paddingX={'12px'}>
             <Box display={'flex'} alignItems='center'>
               <SettingsIcon sx={{ width: 18 }} color="primary" />
               <Box width={8}/>
-              <Typography sx={{ fontSize: 12 }}>Settings</Typography>
+              <Typography sx={{ fontSize: 14 }}>Settings</Typography>
+            </Box>
+            <Box>
+                {promptSettings.questionsCount !== undefined && (
+                    <Box width={250} height={100} >
+                        <Typography noWrap sx={{ fontSize: 13 }}>{promptSettings.questionsCount} questions</Typography>
+                    </Box>
+                )}
             </Box>
         </Box>
       )}
@@ -249,7 +259,7 @@ const InputBox = () => {
             <Box display={'flex'} alignItems='center'>
                 <LibraryBooksIcon color="primary" />
                 <Box width={20} />
-                <Typography variant="h7">Drop files here to help customize LLM for exam generation</Typography>
+                <Typography variant="h7">Drop course materials here to help customize LLM for exam generation</Typography>
             </Box>
             <Box sx={{ '&:hover': { cursor: 'pointer' }}}>
             <Dropzone onDrop={onFileUpload}>
