@@ -8,6 +8,7 @@ import DoNotDisturbOnIcon from '@mui/icons-material/DoNotDisturbOn';
 import workerSrc from '!!file-loader!pdfjs-dist/build/pdf.worker.min.js'
 import Tesseract, { createWorker } from 'tesseract.js';
 import axios from "axios";
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
 
 const pdfjsLib = require(/* webpackChunkName: "pdfjs-dist" */ `pdfjs-dist`);
 
@@ -28,13 +29,15 @@ const InputBox = () => {
 
   const onSubmitPrompt = () => {
     // Do something with prompt
-    console.log(prompt);
+    ws.send(JSON.stringify([{ content: prompt, role: 'user'}]))
+    ws.send(JSON.stringify(modelInput));
   }
 
   const onSubmitPromptEnter = (event) => {
     if (event.keyCode === 13) {
         // Do something with prompt
-        console.log(prompt);
+        ws.send(JSON.stringify([{ content: prompt, role: 'user'}]))
+        ws.send(JSON.stringify(modelInput));
     }
   }
 
@@ -103,10 +106,10 @@ const InputBox = () => {
   useEffect(() => {
     if (parsedFilesCount <= 0 || modelInput.length === 0) return;
     if (parsedFilesCount === files.length) {
-        ws.onopen = () => {
-            ws.send(JSON.stringify([{ content: prompt, role: 'user'}]))
-            ws.send(JSON.stringify(modelInput));
-        }
+        // ws.onopen = () => {
+        //     ws.send(JSON.stringify([{ content: prompt, role: 'user'}]))
+        //     ws.send(JSON.stringify(modelInput));
+        // }
     }
   }, [prompt, parsedFilesCount])
 
@@ -116,10 +119,18 @@ const InputBox = () => {
       <InputBase onKeyDown={onSubmitPromptEnter} onChange={onPromptChange} sx={{ width: '100%', fontSize: '16px', paddingX: '15px' }} placeholder="Instructions to generate exams..." />
       <Box height={30} />
       <Box width={'100%'} sx={{ paddingX: '7px' }} display='flex' justifyContent={'space-between'}>
-        <Box sx={{ '&:hover': { cursor: 'pointer', background: 'black' }, transition: 'background 0.5s ease', paddingX: '5px', paddingY: '5px', borderRadius: '5px' }} display={'flex'} alignItems='center' flexDirection={'row'} onClick={handleOpenDocumentModal}>
-            <AddCircleIcon sx={{ width: '18px' }} fontSize="small" color='primary' />
-            <Box width={5} />
-            <Typography variant="h9" fontSize={'14px'} color='main'>Input Documents</Typography>
+        <Box display={'flex'}>
+            <Box sx={{ '&:hover': { cursor: 'pointer', background: 'black' }, transition: 'background 0.5s ease', paddingX: '5px', paddingY: '5px', borderRadius: '5px' }} display={'flex'} alignItems='center' flexDirection={'row'} onClick={handleOpenDocumentModal}>
+                <AddCircleIcon sx={{ width: '18px' }} fontSize="small" color='primary' />
+                <Box width={5} />
+                <Typography variant="h9" fontSize={'14px'} color='main'>Input Documents</Typography>
+            </Box>
+            <Box width={8} />
+            <Box sx={{ '&:hover': { cursor: 'pointer', background: 'black' }, transition: 'background 0.5s ease', paddingX: '5px', paddingY: '5px', borderRadius: '5px' }} display={'flex'} alignItems='center' flexDirection={'row'} onClick={handleOpenDocumentModal}>
+                <AccountTreeIcon sx={{ width: '18px' }} fontSize="small" color='primary' />
+                <Box width={5} />
+                <Typography variant="h9" fontSize={'14px'} color='main'>Specify questions</Typography>
+            </Box>
         </Box>
         <Box>
         <IconButton onClick={onSubmitPrompt} size="small" sx={{ background: '#1a78ee', marginX: '3px', '&:hover': { background: '#1a78ee' }}}>
@@ -127,6 +138,32 @@ const InputBox = () => {
         </IconButton>
         </Box>
       </Box>
+      {isFileParsing && (
+       <Box paddingX={'15px'}>
+        <Box height={10} />
+        <Typography sx={{ fontSize: '12px' }} variant="h9">Parsing documents...</Typography>
+        <Box sx={{ width: '100%' }}>
+            <LinearProgress />
+        </Box>
+        </Box>
+      )}
+      {files.length > 0 && (
+        <Box paddingTop={'15px'} paddingX={'14px'}>
+            <Box display={'flex'} alignItems='center'>
+              <LibraryBooksIcon sx={{ width: 18 }} color="primary" />
+              <Box width={8}/>
+              <Typography sx={{ fontSize: 12 }}> {files.length} Document{files.length > 1 ? 's' : ''} attached</Typography>
+            </Box>
+            <Box height={10}/>
+            <Box display={'flex'} flexWrap='wrap' justifyContent={'start'}>
+                {files.map(file => (
+                    <Box width={125} key={file.path}>
+                        <Chip sx={{ width: 120, marginBottom: '15px', marginRight: '10px' }} size='small' key={file.path} label={<Typography sx={{ fontSize: '12px' }} variant="h8" noWrap>{file.path}</Typography>} />
+                    </Box>
+                ))}
+            </Box>
+        </Box>
+      )}
     </Box>
     <Modal open={openDocumentModal} onClose={handleCloseDocumentModal}>
         <Box width={700} backgroundColor={'hsla(0,0%,15%,1)'} position='absolute' top={'50%'} left={'50%'} sx={{ transform: 'translate(-50%, -50%)', paddingX: '15px', paddingY: '20px', borderRadius: '5px',  border: '1px solid #333'}}>
@@ -150,10 +187,13 @@ const InputBox = () => {
                     ) : (
                         <>
                         {isFileParsing && (
-                            <Box sx={{ width: '100%' }}>
-                    
-                              <LinearProgress />
-                            </Box>
+                            <>
+                               <Box height={10} />
+                               <Typography sx={{ fontSize: '12px' }} variant="h9" color='grey'>Parsing files...</Typography>
+                               <Box sx={{ width: '100%' }}>
+                                 <LinearProgress />
+                              </Box>
+                            </>
                         )}
                         <Box paddingY='30px' display='flex' flexWrap={'wrap'}>
                             {files.map(file => (
@@ -172,7 +212,7 @@ const InputBox = () => {
             </Dropzone>
             </Box>
             <Box display={'flex'} justifyContent='end'>
-                <Button onClick={handleCloseDocumentModal} variant="contained" startIcon={<DoNotDisturbOnIcon />}>Cancel</Button>
+                <Button onClick={handleCloseDocumentModal} variant="contained" startIcon={<DoNotDisturbOnIcon />}>Close</Button>
             </Box>
         </Box>
     </Modal>
