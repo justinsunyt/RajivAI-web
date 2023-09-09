@@ -2,6 +2,7 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import styles from "../styles/globals.css";
 import Navbar from "../components/common/Navbar";
+import Script from 'next/script'
 
 const darkTheme = createTheme({
   typography: {
@@ -22,6 +23,8 @@ const darkTheme = createTheme({
 const MyApp = ({ Component, pageProps }) => {
   return (
     <ThemeProvider theme={darkTheme}>
+       <Script src='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.6.172/build/pdf.min.js' />
+       <Script src='https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js'/>
       <CssBaseline />
       <Navbar />
       <Component {...pageProps} />

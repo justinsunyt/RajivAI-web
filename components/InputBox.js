@@ -1,15 +1,26 @@
-import { Box, InputBase, TextField, Typography, IconButton, Modal, Button, Chip } from "@mui/material";
+import { Box, InputBase, TextField, Typography, IconButton, Modal, Button, Chip, LinearProgress } from "@mui/material";
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import EastIcon from '@mui/icons-material/East';
 import { useEffect, useState } from "react";
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import Dropzone from 'react-dropzone'
 import DoNotDisturbOnIcon from '@mui/icons-material/DoNotDisturbOn';
+import workerSrc from '!!file-loader!pdfjs-dist/build/pdf.worker.min.js'
+import Tesseract, { createWorker } from 'tesseract.js';
+import axios from "axios";
+
+const pdfjsLib = require(/* webpackChunkName: "pdfjs-dist" */ `pdfjs-dist`);
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
 
 const InputBox = () => {
   const [prompt, setPrompt] = useState('');
-  const [fileUploaded, setFileUploaded] = useState(false);
+  const [modelInput, setModelInput] = useState(false);
   const [files, setFiles] = useState([]);
+  const [parsedFilesCount, setParsedFilesCount] = useState(files.length);
+  const [isFileParsing, setIsFileParsing] = useState(false);
+  const wsUrl = 'ws://127.0.0.1:8000/stream';
+  const ws = new WebSocket(wsUrl);
 
   const onPromptChange = (event) => {
     setPrompt(event.target.value);
@@ -42,22 +53,62 @@ const InputBox = () => {
   }
 
   useEffect(() => {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.10.111/build/pdf.worker.js";
     files.forEach(file => {
         const reader = new FileReader();
         reader.onabort = () => console.log('file reading was aborted')
         reader.onerror = () => console.log('file reading has failed')
-        reader.onload = () => {
-        // Do whatever you want with the file contents
-            const binaryStr = reader.result
-            const encoder = new TextDecoder('utf-8');
+        reader.onloadend = async () => {
+            const buffer = new Uint8Array(reader.result);
+            const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+            const images = [];
+            setIsFileParsing(true);
 
-            const text = encoder.decode(binaryStr);
-            console.log(text);
+            for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+                const page = await pdf.getPage(pageNumber);
+                const viewport = page.getViewport({ scale: 1.5 });
+                const canvas = document.createElement("canvas");
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                await page.render({
+                    canvasContext: canvas.getContext("2d"),
+                    viewport: viewport,
+                }).promise;
+                images.push(canvas.toDataURL("image/png"));
+            }
+
+            for (const image of images) {
+                const {
+                    data: { text },
+                } = await Tesseract.recognize(image, 'eng');
+                setModelInput(prevInput => prevInput + text);
+            }
+
+            setParsedFilesCount(count => count + 1);
+            setIsFileParsing(false);
         }
 
         reader.readAsArrayBuffer(file);
     })
   }, [files])
+
+  useEffect(() => {
+    if (parsedFilesCount <= 0) return;
+    if (parsedFilesCount === files.length) {
+        console.log(modelInput);
+    }
+  }, [parsedFilesCount])
+
+  useEffect(() => {
+    if (parsedFilesCount <= 0 || modelInput.length === 0) return;
+    if (parsedFilesCount === files.length) {
+        ws.onopen = () => {
+            ws.send(JSON.stringify([{ content: prompt, role: 'user'}]))
+            ws.send(JSON.stringify(modelInput));
+        }
+    }
+  }, [prompt, parsedFilesCount])
 
   return (
     <>
@@ -98,6 +149,12 @@ const InputBox = () => {
                         </Box>
                     ) : (
                         <>
+                        {isFileParsing && (
+                            <Box sx={{ width: '100%' }}>
+                    
+                              <LinearProgress />
+                            </Box>
+                        )}
                         <Box paddingY='30px' display='flex' flexWrap={'wrap'}>
                             {files.map(file => (
                                 <Chip sx={{ width: 150, marginBottom: '15px', marginRight: '10px' }} size='small' icon={<LibraryBooksIcon />} key={file.path} label={<Typography variant="h8" noWrap>{file.path}</Typography>} />
