@@ -1,4 +1,4 @@
-import { Box, InputBase, TextField, Typography, IconButton, Modal, Button, Chip, LinearProgress } from "@mui/material";
+import { Box, InputBase, TextField, Typography, IconButton, Modal, Button, Chip, LinearProgress, CircularProgress } from "@mui/material";
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import EastIcon from '@mui/icons-material/East';
 import { useEffect, useState } from "react";
@@ -10,6 +10,7 @@ import Tesseract, { createWorker } from 'tesseract.js';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import ApprovalIcon from '@mui/icons-material/Approval';
 import SettingsIcon from '@mui/icons-material/Settings';
+import TextIncreaseIcon from '@mui/icons-material/TextIncrease';
 
 const pdfjsLib = require(/* webpackChunkName: "pdfjs-dist" */ `pdfjs-dist`);
 
@@ -23,6 +24,9 @@ const InputBox = () => {
   const [isFileParsing, setIsFileParsing] = useState(false);
   const [promptSettings, setPrompSettings] = useState({ questionsCount: undefined, topics: undefined, questionTypes: undefined, notes: undefined });
   const [promptSettingsList, setPrompSettingsList] = useState(['', '', '', '']);
+  const [textBoxValue, setTextBoxValue] = useState('');
+  const [wsClosed, setWSClosed] = useState(false);
+  const [wsMessaging, setWSMessaging] = useState(false);
   const wsUrl = 'ws://127.0.0.1:8000/stream';
 
   const isPrompSettingsEmpty = promptSettingsList.filter(setting => setting !== '').length === 0
@@ -33,16 +37,36 @@ const InputBox = () => {
     setWS(new WebSocket(wsUrl));
   }, [])
 
+  useEffect(() => {
+    if (ws === undefined) return;
+    ws.addEventListener("open", (event) => {
+        setWSClosed(false);
+    });
+    ws.addEventListener("close", (event) => {
+        setWSClosed(true);
+        setWSMessaging(false);
+    });
+    ws.addEventListener("message", (event) => {
+        setWSMessaging(true);
+    });
+  }, [ws])
+
   const onPromptChange = (event) => {
     setPrompt(event.target.value);
   };
 
   const onSubmitPrompt = () => {
+    if (wsClosed) {
+        setWS(new WebSocket(wsUrl));
+    }
     ws.send(JSON.stringify([{ content: prompt + (promptSettingsList.filter(setting => setting !== '').length !== 0 ? ' ' + promptSettingsList.join(' ') : ''), role: 'user'}]))
     ws.send(JSON.stringify(modelInput));
   }
 
   const onSubmitPromptEnter = (event) => {
+    if (wsClosed) {
+        setWS(new WebSocket(wsUrl));
+    }
     if (event.keyCode === 13) {
         ws.send(JSON.stringify([{ content: prompt + (promptSettingsList.filter(setting => setting !== '').length !== 0 ? ' ' + promptSettingsList.join(' ') : ''), role: 'user'}]))
         ws.send(JSON.stringify(modelInput));
@@ -71,6 +95,16 @@ const InputBox = () => {
 
   const onFileUpload = async (uploadedFiles) => {
     setFiles(prevFiles => [...prevFiles, ...uploadedFiles]);
+  }
+
+  const [openTextBox, setOpenTextBox] = useState(false);
+
+  const handleOpenTextBox = () => {
+    setOpenTextBox(true);
+  }
+
+  const handleCloseTextBox = () => {
+    setOpenTextBox(false);
   }
 
   useEffect(() => {
@@ -152,9 +186,11 @@ const InputBox = () => {
         return settings;
     })
   }
+  const onChangeTextBox = (event) => {
+    setTextBoxValue(event.target.value);
+  }
 
   useEffect(() => {
-    console.log(promptSettingsList);
     if (promptSettings.questionsCount !== undefined || promptSettings.questionsCount > 0) {
         // setPromptList(prompt => prompt + ` Make sure to generate ${promptSettings.questionsCount} questions. `)
         setPrompSettingsList(settings => {
@@ -186,6 +222,12 @@ const InputBox = () => {
     }
   }, [promptSettings])
 
+  useEffect(() => {
+    if (textBoxValue !== '') {
+        setModelInput(prevInput => prevInput + ' ' + textBoxValue)
+    }
+  }, [textBoxValue])
+
   return (
     <>
     <Box sx={{ backgroundColor: 'hsla(0,0%,15%,0.8)', paddingTop: '12px', paddingX: '3px', paddingBottom: '16px', borderRadius: '8px', border: '1px solid #333'}} width={'100%'}>
@@ -206,9 +248,15 @@ const InputBox = () => {
             </Box>
         </Box>
         <Box>
-        <IconButton onClick={onSubmitPrompt} size="small" sx={{ background: '#1a78ee', marginX: '3px', '&:hover': { background: '#1a78ee' }}}>
-            <EastIcon sx={{ color: 'hsla(0,0%,15%,0.8)' }} />
-        </IconButton>
+        {wsMessaging ? (
+            <Box>
+                <CircularProgress size='30px' />
+            </Box>
+        ) : (
+            <IconButton disabled={wsMessaging} onClick={onSubmitPrompt} size="small" sx={{ background: wsMessaging ? 'auto' : '#1a78ee', marginX: '3px', '&:hover': { background: '#1a78ee' }}}>
+              <EastIcon sx={{ color: 'hsla(0,0%,15%,0.8)' }} />
+           </IconButton>
+        )}
         </Box>
       </Box>
       {isFileParsing && (
@@ -220,12 +268,12 @@ const InputBox = () => {
         </Box>
         </Box>
       )}
-      {files.length > 0 && (
+      {files.length > 0 || textBoxValue !== '' && (
         <Box paddingTop={'15px'} paddingX={'14px'}>
             <Box display={'flex'} alignItems='center'>
               <LibraryBooksIcon sx={{ width: 18 }} color="primary" />
               <Box width={8}/>
-              <Typography sx={{ fontSize: 12 }}> {files.length} document{files.length > 1 ? 's' : ''} attached</Typography>
+              <Typography sx={{ fontSize: 12 }}> {files.length + (textBoxValue !== '')} document{files.length > 1 ? 's' : ''} attached</Typography>
             </Box>
             <Box height={10}/>
             <Box display={'flex'} flexWrap='wrap' justifyContent={'start'}>
@@ -234,6 +282,11 @@ const InputBox = () => {
                         <Chip sx={{ width: 120, marginBottom: '15px', marginRight: '10px' }} size='small' key={file.path} label={<Typography sx={{ fontSize: '12px' }} variant="h8" noWrap>{(index+1) + '. ' + file.path}</Typography>} />
                     </Box>
                 ))}
+                {textBoxValue !== '' && (
+                    <Box width={125}>
+                      <Chip sx={{ width: 120, marginBottom: '15px', marginRight: '10px' }} size='small' label={<Typography sx={{ fontSize: '12px' }} variant="h8" noWrap>Custom text</Typography>} />
+                    </Box>
+                )}
             </Box>
         </Box>
       )}
@@ -244,10 +297,26 @@ const InputBox = () => {
               <Box width={8}/>
               <Typography sx={{ fontSize: 14 }}>Settings</Typography>
             </Box>
-            <Box>
+            <Box height={10} />
+            <Box display={'flex'} columnGap={1}>
                 {promptSettings.questionsCount !== undefined && (
-                    <Box width={250} height={100} >
+                    <Box width={'fit-content'} height={'fit-content'} borderRadius={'5px'} paddingX={'8px'} paddingY={'5px'} sx={{ background: 'black' }} >
                         <Typography noWrap sx={{ fontSize: 13 }}>{promptSettings.questionsCount} questions</Typography>
+                    </Box>
+                )}
+                {promptSettings.questionTypes !== undefined && (
+                    <Box width={150} height={50} overflow='hidden' borderRadius={'5px'} paddingX={'8px'} paddingY={'5px'} sx={{ background: 'black' }} >
+                        <Typography textOverflow='ellipsis' whiteSpace='wrap' overflow='hidden' sx={{ fontSize: 13 }}>Type specifications: {promptSettings.questionTypes}</Typography>
+                    </Box>
+                )}
+                 {promptSettings.topics !== undefined && (
+                    <Box width={150} height={50} borderRadius={'5px'} paddingX={'8px'} paddingY={'5px'} sx={{ background: 'black' }} >
+                        <Typography  textOverflow='ellipsis' whiteSpace='wrap' overflow='hidden' sx={{ fontSize: 13 }}>Topics: {promptSettings.topics}</Typography>
+                    </Box>
+                )}
+                 {promptSettings.notes !== undefined && (
+                    <Box width={150} height={50} textOverflow='ellipsis' borderRadius={'5px'} paddingX={'8px'} paddingY={'5px'} sx={{ background: 'black' }} >
+                        <Typography textOverflow='ellipsis' whiteSpace='wrap' overflow='hidden' sx={{ fontSize: 13 }}>Notes: {promptSettings.notes}</Typography>
                     </Box>
                 )}
             </Box>
@@ -267,7 +336,7 @@ const InputBox = () => {
                 <section>
                 <div {...getRootProps()}>
                     <input {...getInputProps()} />
-                    {files.length === 0 ? (
+                    {files.length === 0 && textBoxValue === '' ? (
                         <Box height={300} display='flex' alignItems='center' justifyContent='center'>
                             <Typography variant="h8" color='grey'>
                             Drag and drop documents here
@@ -288,6 +357,9 @@ const InputBox = () => {
                             {files.map(file => (
                                 <Chip sx={{ width: 150, marginBottom: '15px', marginRight: '10px' }} size='small' icon={<LibraryBooksIcon />} key={file.path} label={<Typography variant="h8" noWrap>{file.path}</Typography>} />
                             ))}
+                            {textBoxValue !== '' && (
+                                <Chip variant="outlined" sx={{ width: 150, marginBottom: '15px', marginRight: '10px' }} size='small' icon={<LibraryBooksIcon />} label={<Typography variant="h8" noWrap>Custom text document</Typography>} />
+                            )}
                         </Box>
                         <Typography variant="h8" color='grey'>
                             Drag more documents by clicking!
@@ -300,8 +372,26 @@ const InputBox = () => {
             )}
             </Dropzone>
             </Box>
+            <Button variant="outlined" size="small" onClick={handleOpenTextBox} startIcon={<TextIncreaseIcon />}>Insert text as materials</Button>
             <Box display={'flex'} justifyContent='end'>
                 <Button onClick={handleCloseDocumentModal} variant="contained" startIcon={<DoNotDisturbOnIcon />}>Close</Button>
+            </Box>
+        </Box>
+    </Modal>
+    <Modal open={openTextBox} onClose={handleCloseTextBox}>
+        <Box  width={700} backgroundColor={'hsla(0,0%,15%,1)'} position='absolute' top={'50%'} left={'50%'} sx={{ transform: 'translate(-50%, -50%)', paddingX: '15px', paddingY: '20px', borderRadius: '5px',  border: '1px solid #333'}}>
+            <Box display={'flex'} alignItems='center'>
+                    <TextIncreaseIcon fontSize="small" color='primary' />
+                    <Box width={10} />
+                    <Typography variant="h7">Add text as documents into LLM</Typography>
+            </Box>
+            <Box height={20} />
+            <Box>
+                <TextField onChange={onChangeTextBox} sx={{ width: '100%' }} variant="outlined" label="Paste text here" multiline rows={10}/>
+            </Box>
+            <Box height={20} />
+            <Box display={'flex'} justifyContent='end'>
+                <Button onClick={handleCloseTextBox} variant="contained" startIcon={<AddCircleIcon />}>Submit</Button>
             </Box>
         </Box>
     </Modal>
@@ -328,6 +418,18 @@ const InputBox = () => {
             </Box>
         </Box>
     </Modal>
+    <Box height={30} />
+    {wsMessaging && (
+        <Box sx={{ backgroundColor: 'hsla(0,0%,15%,0.8)', paddingTop: '12px', paddingX: '3px', paddingBottom: '16px', borderRadius: '8px', border: '1px solid #333'}} width={'100%'}>
+            <Box paddingX={'12px'} paddingY={'10xp'}>
+              <Typography variant="h6">Generating exam</Typography>
+            </Box>
+            <Box height={15} />
+            <Box paddingX={'12px'} sx={{ width: '100%' }}>
+              <LinearProgress />
+            </Box>
+        </Box>
+    )}
     </>
   )
 };
