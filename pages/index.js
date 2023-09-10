@@ -10,8 +10,8 @@ const Home = () => {
         <title>RajivAI - Your Personal Test Generator</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <Box display={'flex'} flexDirection='column' justifyContent='center' alignItems={'center'} minHeight={'100vh'}>
-        <Box width={'fit-content'} paddingX={'20px'} display='flex' justifyContent={'center'} flexDirection='column'>
+      <Box display={'flex'} flexDirection='column' justifyContent='center' alignItems={'center'} paddingTop={'10%'} paddingBottom='10%'>
+        <Box width={800} paddingX={'20px'} display='flex' justifyContent={'center'} flexDirection='column'>
           <Box display='flex' flexDirection={'row'} justifyContent={'center'} alignItems={'center'}>
             <BoltIcon sx={{ transform: 'scale(2.5)' }} color="primary" />
             <Box sx={{ width: 20 }} />

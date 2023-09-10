@@ -1,7 +1,7 @@
-import { Box, InputBase, TextField, Typography, IconButton, Modal, Button, Chip, LinearProgress, CircularProgress } from "@mui/material";
+import { Box, InputBase, TextField, Typography, IconButton, Modal, Button, Chip, LinearProgress, CircularProgress, Card } from "@mui/material";
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import EastIcon from '@mui/icons-material/East';
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import Dropzone from 'react-dropzone'
 import DoNotDisturbOnIcon from '@mui/icons-material/DoNotDisturbOn';
@@ -11,6 +11,8 @@ import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import ApprovalIcon from '@mui/icons-material/Approval';
 import SettingsIcon from '@mui/icons-material/Settings';
 import TextIncreaseIcon from '@mui/icons-material/TextIncrease';
+import { TextareaAutosize } from '@mui/base/TextareaAutosize';
+import AutoGraphIcon from '@mui/icons-material/AutoGraph';
 
 const pdfjsLib = require(/* webpackChunkName: "pdfjs-dist" */ `pdfjs-dist`);
 
@@ -27,7 +29,10 @@ const InputBox = () => {
   const [textBoxValue, setTextBoxValue] = useState('');
   const [wsClosed, setWSClosed] = useState(false);
   const [wsMessaging, setWSMessaging] = useState(false);
+  const [wsMessages, setWSMessages] = useState('');
   const wsUrl = 'ws://127.0.0.1:8000/stream';
+  const bottomRef = useRef(null);
+  const messageBoxRef = useRef(null);
 
   const isPrompSettingsEmpty = promptSettingsList.filter(setting => setting !== '').length === 0
 
@@ -48,8 +53,10 @@ const InputBox = () => {
     });
     ws.addEventListener("message", (event) => {
         setWSMessaging(true);
+        setWSMessages(prevMessages => prevMessages + String(event.data));
     });
   }, [ws])
+  
 
   const onPromptChange = (event) => {
     setPrompt(event.target.value);
@@ -305,17 +312,17 @@ const InputBox = () => {
                     </Box>
                 )}
                 {promptSettings.questionTypes !== undefined && (
-                    <Box width={150} height={50} overflow='hidden' borderRadius={'5px'} paddingX={'8px'} paddingY={'5px'} sx={{ background: 'black' }} >
+                    <Box width={150} height={50} overflow='hidden' borderRadius={'5px'} paddingX={'8px'} paddingY={'5px'} sx={{ background: 'black', overflowY: 'scroll' }} >
                         <Typography textOverflow='ellipsis' whiteSpace='wrap' overflow='hidden' sx={{ fontSize: 13 }}>Type specifications: {promptSettings.questionTypes}</Typography>
                     </Box>
                 )}
                  {promptSettings.topics !== undefined && (
-                    <Box width={150} height={50} borderRadius={'5px'} paddingX={'8px'} paddingY={'5px'} sx={{ background: 'black' }} >
+                    <Box width={150} height={50} borderRadius={'5px'} paddingX={'8px'} paddingY={'5px'} sx={{ background: 'black', overflowY: 'scroll'  }} >
                         <Typography  textOverflow='ellipsis' whiteSpace='wrap' overflow='hidden' sx={{ fontSize: 13 }}>Topics: {promptSettings.topics}</Typography>
                     </Box>
                 )}
                  {promptSettings.notes !== undefined && (
-                    <Box width={150} height={50} textOverflow='ellipsis' borderRadius={'5px'} paddingX={'8px'} paddingY={'5px'} sx={{ background: 'black' }} >
+                    <Box width={150} height={50} textOverflow='ellipsis' borderRadius={'5px'} paddingX={'8px'} paddingY={'5px'} sx={{ background: 'black', overflowY: 'scroll'  }} >
                         <Typography textOverflow='ellipsis' whiteSpace='wrap' overflow='hidden' sx={{ fontSize: 13 }}>Notes: {promptSettings.notes}</Typography>
                     </Box>
                 )}
@@ -387,7 +394,7 @@ const InputBox = () => {
             </Box>
             <Box height={20} />
             <Box>
-                <TextField onChange={onChangeTextBox} sx={{ width: '100%' }} variant="outlined" label="Paste text here" multiline rows={10}/>
+                <TextField value={textBoxValue} onChange={onChangeTextBox} sx={{ width: '100%' }} variant="outlined" label="Paste text here" multiline rows={10}/>
             </Box>
             <Box height={20} />
             <Box display={'flex'} justifyContent='end'>
@@ -420,7 +427,8 @@ const InputBox = () => {
     </Modal>
     <Box height={30} />
     {wsMessaging && (
-        <Box sx={{ backgroundColor: 'hsla(0,0%,15%,0.8)', paddingTop: '12px', paddingX: '3px', paddingBottom: '16px', borderRadius: '8px', border: '1px solid #333'}} width={'100%'}>
+        <>
+           <Box sx={{ backgroundColor: 'hsla(0,0%,15%,0.8)', paddingTop: '12px', paddingX: '3px', paddingBottom: '16px', borderRadius: '8px', border: '1px solid #333'}} width={'100%'}>
             <Box paddingX={'12px'} paddingY={'10xp'}>
               <Typography variant="h6">Generating exam</Typography>
             </Box>
@@ -428,7 +436,27 @@ const InputBox = () => {
             <Box paddingX={'12px'} sx={{ width: '100%' }}>
               <LinearProgress />
             </Box>
-        </Box>
+           </Box>
+           <Box height={30} />
+        </>
+    )}
+    {wsMessages !== '' && (
+      <Box sx={{ backgroundColor: 'hsla(0,0%,15%,0.8)', paddingTop: '12px', paddingX: '3px', paddingBottom: '16px', borderRadius: '8px', border: '1px solid #333'}} width={'100%'}>
+         <Box paddingX={'12px'} paddingY={'10xp'}>
+            <Box display={'flex'} alignItems='center'>
+              <AutoGraphIcon sx={{ width: 32, height: 32 }} color='primary'/>
+              <Box width={10} />
+              <Typography variant="h6">Model Output</Typography>
+            </Box>
+           <Box>
+           <Box height={20} />
+            <Box whiteSpace={'pre-wrap'} sx={{ width: '100%', fontSize: '12px', background: 'black', overflowY: 'scroll', height: 250, paddingX: '18px', paddingY: '15px', borderRadius: '10px' }} display={'flex'} flexDirection='column-reverse'>
+                {wsMessages}
+                <span ref={bottomRef}></span>
+            </Box>
+           </Box>
+         </Box>
+     </Box>
     )}
     </>
   )

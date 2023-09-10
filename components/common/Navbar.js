@@ -3,7 +3,7 @@ import Image from 'next/image'
 
 const Navbar = () => {
   return (
-    <Box position={'fixed'} alignItems='center' justifyContent='center' width={'100%'} minHeight={120} display={'flex'} flexDirection={'row'}>
+    <Box alignItems='center' justifyContent='center' width={'100%'} minHeight={120} display={'flex'} flexDirection={'row'}>
         <Box display={'flex'} alignItems='center'>
             <Image src={'/logo.jpg'} width={40} height={40} alt='Logo' />
             <Box width={15} />
