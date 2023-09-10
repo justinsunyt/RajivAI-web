@@ -12,8 +12,8 @@ const Navbar = () => {
       flexDirection={"row"}
     >
       <Box display={"flex"} alignItems="center">
-        <Image src={"/logo.jpg"} width={40} height={40} alt="Logo" />
-        <Box width={15} />
+         <Typography variant="h5">👨‍🏫</Typography>
+        <Box width={12} />
         <Typography variant="h5">
           Rajiv
           <Typography

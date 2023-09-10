@@ -7,7 +7,7 @@ const Home = () => {
   return (
     <div>
       <Head>
-        <title>RajivAI - Your Personal Test Generator</title>
+        <title>RajivAI - Your Multi-Agent Exam Generator</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <Box

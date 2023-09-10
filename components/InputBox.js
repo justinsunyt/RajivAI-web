@@ -142,7 +142,7 @@ const InputBox = () => {
         setCurrentAction("Rajiv Output");
         setRajivOutput(token);
       }
-      if (token.includes('Rajiv-delegate')) {
+      if (token.includes('Rajiv-delegation')) {
         setCurrentAction("Rajiv Delegate")
         setRajivDelegate(token);
       }
@@ -1007,20 +1007,31 @@ const InputBox = () => {
             >
               <Tooltip arrow placement="top" title={
               <Box>{rajivDelegate !== '' && (
+               <Box>
+                 <Box display={"flex"} alignItems="center">
+                        <SettingsIcon
+                          sx={{ width: 18, height: 18 }}
+                          color="primary"
+                        />
+                        <Box width={5} />
+                        <Typography sx={{ fontSize: 16 }}>Delegaion</Typography>
+                      </Box>
+                      <Box height={5} />
                 <Box
-                whiteSpace={"pre-wrap"}
-                sx={{
-                  width: 200,
-                  height: 250,
-                  overflowY: "scroll",
-                  background: "black",
-                  paddingX: "8px",
-                  paddingY: "5px",
-                }}
-                display={"flex"}
-                flexDirection="column-reverse"
-              >
-                {rajivDelegate}
+                    whiteSpace={"pre-wrap"}
+                    sx={{
+                    width: 200,
+                    height: 250,
+                    overflowY: "scroll",
+                    background: "black",
+                    paddingX: "8px",
+                    paddingY: "5px",
+                    }}
+                    display={"flex"}
+                    flexDirection="column-reverse"
+                >
+                    {rajivDelegate}
+                </Box>
               </Box>
               )}</Box>}>
                 <Typography variant="h7">👨‍🏫 Professor Rajiv</Typography>
