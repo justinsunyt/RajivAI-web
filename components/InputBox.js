@@ -74,6 +74,7 @@ const InputBox = () => {
   const [currentAction, setCurrentAction] = useState("");
   const [currentTeamIndex, setCurrentTeamIndex] = useState();
   const [rajivOutput, setRajivOutput] = useState('');
+  const [rajivDelegate, setRajivDelegate] = useState('');
 
   const isPrompSettingsEmpty =
     promptSettingsList.filter((setting) => setting !== "").length === 0;
@@ -141,6 +142,10 @@ const InputBox = () => {
         setCurrentAction("Rajiv Output");
         setRajivOutput(token);
       }
+      if (token.includes('Rajiv-delegate')) {
+        setCurrentAction("Rajiv Delegate")
+        setRajivDelegate(token);
+      }
     });
   }, [ws]);
 
@@ -181,6 +186,9 @@ const InputBox = () => {
     if (currentAction === 'Rajiv Output') {
         setRajivOutput(prevOutput => prevOutput + newToken);
     }
+    if (currentAction === 'Rajiv Delegate') {
+        setRajivDelegate(prevOutput => prevOutput + newToken);
+    }
   }, [newToken])
 
   const onPromptChange = (event) => {
@@ -195,7 +203,7 @@ const InputBox = () => {
       JSON.stringify([
         {
           content:
-            `You must follow this prompt: ${prompt}` +
+            `You must create questions that are eiher general concepts questions, questions that combine multiple concepts into one or questions that are formed from practical examples. You must follow this prompt: ${prompt}` +
             (promptSettingsList.filter((setting) => setting !== "").length !== 0
               ? " " + promptSettingsList.join(" ")
               : ""),
@@ -658,8 +666,8 @@ const InputBox = () => {
             <LibraryBooksIcon color="primary" />
             <Box width={20} />
             <Typography variant="h7">
-              Drop course materials here to help customize LLM for exam
-              generation
+              Drop course material PDFs here to help tune LLM for exam
+              generation (very slow, try adding text instead)
             </Typography>
           </Box>
           <Box sx={{ "&:hover": { cursor: "pointer" } }}>
@@ -780,7 +788,7 @@ const InputBox = () => {
           <Box display={"flex"} alignItems="center">
             <TextIncreaseIcon fontSize="small" color="primary" />
             <Box width={10} />
-            <Typography variant="h7">Add text as documents into LLM</Typography>
+            <Typography variant="h7">Add text as course materials</Typography>
           </Box>
           <Box height={20} />
           <Box>
@@ -997,8 +1005,25 @@ const InputBox = () => {
               justifyContent="center"
               sx={{ paddingTop: "12px" }}
             >
-              <Tooltip>
-                <Typography variant="h7">👨🏾‍🏫 Professor Rajiv</Typography>
+              <Tooltip arrow placement="top" title={
+              <Box>{rajivDelegate !== '' && (
+                <Box
+                whiteSpace={"pre-wrap"}
+                sx={{
+                  width: 200,
+                  height: 250,
+                  overflowY: "scroll",
+                  background: "black",
+                  paddingX: "8px",
+                  paddingY: "5px",
+                }}
+                display={"flex"}
+                flexDirection="column-reverse"
+              >
+                {rajivDelegate}
+              </Box>
+              )}</Box>}>
+                <Typography variant="h7">👨‍🏫 Professor Rajiv</Typography>
               </Tooltip>
             </Box>
             <Box height={20} />
@@ -1049,7 +1074,7 @@ const InputBox = () => {
                               />
                               <Box width={5} />
                               <Typography sx={{ fontSize: 16 }}>
-                                Questions - TA1
+                                Generation - TA1
                               </Typography>
                             </Box>
                             <Box height={5} />
@@ -1185,7 +1210,7 @@ const InputBox = () => {
           <Box display={"flex"} alignItems="center">
             <AutoGraphIcon sx={{ width: 32, height: 32 }} color="primary" />
             <Box width={10} />
-            <Typography variant="h6">Rajiv Output</Typography>
+            <Typography variant="h6">Final Output</Typography>
           </Box>
           <Box>
             <Box height={20} />
